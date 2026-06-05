@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maulik Grover — Video Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,500&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#06060a;
+  --bg2:#0c0c12;
+  --surface:#111118;
+  --surface2:#18181f;
+  --gold:#c9a84c;
+  --gold2:#e8d5a0;
+  --red:#c0392b;
+  --text:#e8e4dc;
+  --muted:#6a6a72;
+  --border:rgba(201,168,76,0.12);
+}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'IBM Plex Mono',monospace;
+  overflow-x:hidden;
+  cursor:none;
+}
+
+/* ── CURSOR ── */
+#cur{width:8px;height:8px;background:var(--gold);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;transition:transform .1s;}
+#cur-r{width:36px;height:36px;border:1px solid var(--gold);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;opacity:.5;transition:all .25s cubic-bezier(.16,1,.3,1);}
+body:hover #cur-r{opacity:.5;}
+
+/* ── FILMGRAIN OVERLAY ── */
+body::after{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='1'/%3E%3C/svg%3E");
+  opacity:.04;pointer-events:none;z-index:9997;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--gold);opacity:.4;}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;width:100%;z-index:500;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:28px 56px;
+  background:linear-gradient(to bottom,rgba(6,6,10,.95),transparent);
+}
+.nav-logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.4rem;letter-spacing:.12em;color:var(--text);
+  text-decoration:none;
+}
+.nav-logo span{color:var(--gold);}
+.nav-links{display:flex;gap:36px;list-style:none;}
+.nav-links a{
+  font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;transition:color .2s;
+}
+.nav-links a:hover{color:var(--gold);}
+.nav-cta{
+  font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--bg);background:var(--gold);
+  padding:10px 22px;text-decoration:none;
+  transition:opacity .2s;
+}
+.nav-cta:hover{opacity:.8;}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;
+  display:grid;grid-template-columns:1fr 1fr;
+  align-items:center;
+  padding:0 56px;
+  position:relative;overflow:hidden;
+}
+.hero-vignette{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 80% 80% at 70% 50%,rgba(201,168,76,.04) 0%,transparent 70%),
+    radial-gradient(ellipse 50% 90% at 0% 50%,rgba(6,6,10,.8) 0%,transparent 60%);
+  pointer-events:none;
+}
+.hero-lines{
+  position:absolute;top:0;left:56px;right:56px;bottom:0;
+  background-image:repeating-linear-gradient(
+    to right,
+    rgba(201,168,76,.03) 0px,rgba(201,168,76,.03) 1px,
+    transparent 1px,transparent calc(100%/12)
+  );
+  pointer-events:none;
+}
+
+.hero-left{position:relative;z-index:1;}
+.hero-eyebrow{
+  font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:24px;
+  display:flex;align-items:center;gap:12px;
+  opacity:0;animation:slideUp .8s .3s forwards;
+}
+.hero-eyebrow::before{content:'';width:28px;height:1px;background:var(--gold);}
+
+.hero-name{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(70px,9vw,140px);
+  line-height:.9;letter-spacing:.02em;
+  color:var(--text);
+  opacity:0;animation:slideUp .9s .45s forwards;
+}
+.hero-name .gold{color:var(--gold);}
+
+.hero-title{
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic;font-weight:300;
+  font-size:clamp(18px,2.2vw,32px);
+  color:var(--muted);margin-top:12px;
+  letter-spacing:.04em;
+  opacity:0;animation:slideUp .9s .6s forwards;
+}
+
+.hero-desc{
+  max-width:420px;
+  font-size:.75rem;line-height:2;color:var(--muted);
+  margin-top:32px;
+  opacity:0;animation:slideUp .9s .75s forwards;
+}
+
+.hero-actions{
+  display:flex;gap:16px;margin-top:48px;flex-wrap:wrap;
+  opacity:0;animation:slideUp .9s .9s forwards;
+}
+.btn-primary{
+  background:var(--gold);color:var(--bg);
+  padding:14px 32px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;
+  text-decoration:none;border:none;cursor:none;
+  transition:opacity .2s,transform .2s;display:inline-block;
+}
+.btn-primary:hover{opacity:.85;transform:translateY(-2px);}
+.btn-outline{
+  background:transparent;color:var(--text);
+  padding:14px 32px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;
+  text-decoration:none;border:1px solid var(--border);cursor:none;
+  transition:border-color .2s,color .2s;display:inline-block;
+}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold);}
+
+/* hero right — film strip */
+.hero-right{
+  position:relative;z-index:1;
+  display:flex;justify-content:flex-end;align-items:center;
+  opacity:0;animation:fadeIn 1.2s .5s forwards;
+}
+.filmstrip{
+  position:relative;width:320px;
+  display:flex;flex-direction:column;gap:0;
+}
+.film-frame{
+  border:1px solid rgba(201,168,76,.15);
+  height:180px;
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+  transition:border-color .3s;
+}
+.film-frame:hover{border-color:var(--gold);}
+.film-frame::before,.film-frame::after{
+  content:'';position:absolute;left:0;right:0;height:16px;
+  background:repeating-linear-gradient(
+    to right,var(--bg) 0,var(--bg) 8px,transparent 8px,transparent 16px
+  );
+  opacity:.6;
+}
+.film-frame::before{top:0;}
+.film-frame::after{bottom:0;}
+.film-inner{
+  width:100%;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;position:relative;z-index:1;
+}
+.film-icon{font-size:2rem;}
+.film-label{
+  font-size:.55rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);
+}
+.film-sub{font-size:.6rem;color:var(--muted);margin-top:2px;}
+/* gradient overlays on frames */
+.film-frame:nth-child(1) .film-inner{background:linear-gradient(135deg,rgba(192,57,43,.06),transparent);}
+.film-frame:nth-child(2) .film-inner{background:linear-gradient(135deg,rgba(201,168,76,.04),transparent);}
+.film-frame:nth-child(3) .film-inner{background:linear-gradient(135deg,rgba(44,62,80,.1),transparent);}
+
+.film-counter{
+  position:absolute;bottom:24px;right:16px;
+  font-size:.55rem;letter-spacing:.12em;color:var(--muted);
+  font-family:'IBM Plex Mono',monospace;
+}
+
+/* ── ABOUT STRIP ── */
+.about-strip{
+  border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  background:var(--surface);
+  padding:56px;
+  display:grid;grid-template-columns:1fr 2fr 1fr;
+  gap:56px;align-items:center;
+}
+.about-left .big-num{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:5rem;color:var(--gold);line-height:1;letter-spacing:.04em;
+}
+.about-left .big-label{
+  font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);
+  margin-top:4px;
+}
+.about-center p{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.15rem;line-height:1.85;font-weight:300;
+  color:var(--text);
+}
+.about-center p em{font-style:italic;color:var(--gold2);}
+.about-right{
+  display:flex;flex-direction:column;gap:20px;
+  border-left:1px solid var(--border);
+  padding-left:40px;
+}
+.info-row{display:flex;flex-direction:column;gap:3px;}
+.info-label{font-size:.55rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);}
+.info-val{font-size:.78rem;color:var(--text);}
+.info-val a{color:var(--gold);text-decoration:none;}
+
+/* ── SECTION SCAFFOLD ── */
+.section{padding:120px 56px;}
+.sec-tag{
+  font-size:.6rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);
+  display:flex;align-items:center;gap:14px;margin-bottom:20px;
+}
+.sec-tag::before{content:'';width:28px;height:1px;background:var(--gold);}
+.sec-h{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(40px,6vw,90px);
+  letter-spacing:.04em;line-height:.95;
+  color:var(--text);
+  margin-bottom:60px;
+}
+.sec-h em{
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic;font-weight:300;
+  font-size:.75em;color:var(--gold);
+}
+
+/* ── SKILLS ── */
+.skills-section{background:var(--bg2);}
+.skills-layout{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
+.skill-block{
+  background:var(--surface);
+  padding:56px 48px;
+  position:relative;overflow:hidden;
+  transition:background .3s;
+}
+.skill-block:hover{background:var(--surface2);}
+.skill-block::before{
+  content:'';position:absolute;top:0;left:0;width:3px;height:0;
+  background:var(--gold);transition:height .4s cubic-bezier(.16,1,.3,1);
+}
+.skill-block:hover::before{height:100%;}
+.skill-head{
+  display:flex;align-items:flex-start;
+  justify-content:space-between;margin-bottom:32px;
+}
+.skill-name{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.6rem;letter-spacing:.06em;color:var(--text);
+}
+.skill-tag{
+  font-size:.55rem;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--bg);background:var(--gold);
+  padding:5px 12px;margin-top:4px;
+}
+.skill-desc{
+  font-size:.72rem;line-height:1.9;color:var(--muted);
+  margin-bottom:32px;
+}
+.mastery-label{
+  font-size:.55rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:10px;
+}
+.mastery-bar{
+  height:2px;background:var(--surface2);
+  position:relative;overflow:hidden;
+}
+.mastery-fill{
+  position:absolute;top:0;left:0;height:100%;
+  background:linear-gradient(to right,var(--gold),var(--gold2));
+  width:0;transition:width 1.2s cubic-bezier(.16,1,.3,1);
+}
+.mastery-pct{
+  font-size:.6rem;color:var(--gold);
+  text-align:right;margin-top:6px;letter-spacing:.05em;
+}
+.skill-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px;}
+.stag{
+  font-size:.55rem;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid var(--border);color:var(--muted);
+  padding:5px 12px;
+}
+
+/* ── TOOLS ── */
+.tools-section{background:var(--bg);}
+.tools-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  gap:1px;background:var(--border);
+  border:1px solid var(--border);
+}
+.tool-card{
+  background:var(--surface);
+  padding:40px 28px;
+  text-align:center;
+  transition:background .3s;
+  position:relative;
+}
+.tool-card:hover{background:var(--surface2);}
+.tool-card::after{
+  content:'';
+  position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:0;height:2px;background:var(--gold);
+  transition:width .3s;
+}
+.tool-card:hover::after{width:60%;}
+.tool-icon{font-size:2rem;margin-bottom:16px;display:block;}
+.tool-name{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1rem;letter-spacing:.1em;color:var(--text);
+  margin-bottom:6px;
+}
+.tool-level{font-size:.58rem;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;}
+
+/* ── WORK SECTION ── */
+.work-section{background:var(--surface);}
+.work-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--border);
+}
+.work-card{
+  background:var(--bg2);
+  position:relative;overflow:hidden;
+  aspect-ratio:16/10;
+  cursor:none;
+}
+.work-card.featured{grid-column:span 2;aspect-ratio:16/7;}
+.work-bg{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:3.5rem;
+  transition:transform .6s cubic-bezier(.16,1,.3,1);
+}
+.work-card:hover .work-bg{transform:scale(1.06);}
+.work-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(6,6,10,.95) 0%,rgba(6,6,10,.3) 60%,transparent 100%);
+  padding:28px;
+  display:flex;flex-direction:column;justify-content:flex-end;
+}
+.work-cat{
+  font-size:.55rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:8px;
+}
+.work-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.4rem;letter-spacing:.06em;color:var(--text);
+  margin-bottom:4px;
+}
+.work-sub{font-size:.65rem;color:var(--muted);}
+.work-play-btn{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(0);
+  width:56px;height:56px;
+  border:1px solid var(--gold);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;
+  background:rgba(201,168,76,.1);
+  transition:transform .3s cubic-bezier(.16,1,.3,1);
+}
+.work-card:hover .work-play-btn{transform:translate(-50%,-50%) scale(1);}
+
+/* ── EXPERIENCE TIMELINE ── */
+.exp-section{background:var(--bg);}
+.exp-line{
+  display:grid;grid-template-columns:160px 1fr;
+  gap:0;
+  border-bottom:1px solid var(--border);
+  padding:48px 0;
+  position:relative;
+}
+.exp-line::before{
+  content:'';
+  position:absolute;left:160px;top:0;bottom:0;
+  width:1px;background:var(--border);
+}
+.exp-year{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:2rem;letter-spacing:.1em;color:var(--gold);
+  padding-right:40px;
+  padding-top:4px;
+}
+.exp-content{padding-left:48px;}
+.exp-role{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.5rem;letter-spacing:.06em;
+  color:var(--text);margin-bottom:4px;
+}
+.exp-company{
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic;font-size:.95rem;
+  color:var(--gold2);margin-bottom:16px;
+}
+.exp-desc{font-size:.72rem;line-height:1.9;color:var(--muted);max-width:640px;}
+.exp-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.etag{
+  font-size:.55rem;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid var(--border);color:var(--muted);
+  padding:4px 10px;
+}
+
+/* ── CERTIFICATIONS ── */
+.cert-section{background:var(--bg2);}
+.cert-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--border);
+}
+.cert-card{
+  background:var(--surface);
+  padding:40px;
+  transition:background .3s;
+  position:relative;
+}
+.cert-card:hover{background:var(--surface2);}
+.cert-icon{font-size:2rem;margin-bottom:20px;display:block;}
+.cert-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.1rem;letter-spacing:.06em;
+  color:var(--text);margin-bottom:6px;
+}
+.cert-org{font-size:.65rem;letter-spacing:.12em;color:var(--gold);margin-bottom:12px;}
+.cert-status{
+  display:inline-block;
+  font-size:.55rem;letter-spacing:.15em;text-transform:uppercase;
+  padding:4px 12px;
+}
+.cert-status.completed{background:rgba(201,168,76,.1);color:var(--gold);border:1px solid rgba(201,168,76,.2);}
+.cert-status.pursuing{background:rgba(192,57,43,.1);color:#e74c3c;border:1px solid rgba(192,57,43,.2);}
+
+/* ── CONTACT ── */
+.contact-section{
+  background:var(--bg);
+  padding:120px 56px;
+  border-top:1px solid var(--border);
+}
+.contact-inner{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:100px;align-items:start;
+}
+.contact-left h2{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(48px,7vw,100px);
+  letter-spacing:.04em;line-height:.9;
+  color:var(--text);margin-bottom:32px;
+}
+.contact-left h2 em{
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic;font-weight:300;
+  display:block;color:var(--gold);
+}
+.contact-left p{
+  font-size:.75rem;line-height:1.9;color:var(--muted);
+  max-width:380px;margin-bottom:40px;
+}
+.contact-links{display:flex;flex-direction:column;gap:16px;}
+.contact-link{
+  display:flex;align-items:center;gap:16px;
+  font-size:.72rem;color:var(--text);text-decoration:none;
+  padding:16px 0;border-bottom:1px solid var(--border);
+  transition:color .2s;
+}
+.contact-link:hover{color:var(--gold);}
+.contact-link-icon{font-size:1rem;width:24px;text-align:center;}
+.contact-right .form{display:flex;flex-direction:column;gap:0;border:1px solid var(--border);}
+.form-f{
+  padding:18px 24px;
+  background:transparent;border:none;
+  border-bottom:1px solid var(--border);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.72rem;color:var(--text);outline:none;cursor:none;
+}
+.form-f::placeholder{color:var(--muted);}
+textarea.form-f{resize:none;min-height:130px;border-bottom:none;}
+.form-btn{
+  background:var(--gold);color:var(--bg);
+  border:none;padding:20px 28px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;
+  cursor:none;
+  display:flex;justify-content:space-between;align-items:center;
+  transition:opacity .2s;
+  border-top:1px solid var(--border);
+}
+.form-btn:hover{opacity:.85;}
+
+/* ── FOOTER ── */
+footer{
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  padding:40px 56px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.footer-logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.1rem;letter-spacing:.12em;color:var(--text);
+}
+.footer-logo span{color:var(--gold);}
+footer p{font-size:.62rem;color:var(--muted);}
+.footer-socials{display:flex;gap:24px;}
+.footer-socials a{
+  font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;transition:color .2s;
+}
+.footer-socials a:hover{color:var(--gold);}
+
+/* ── ANIMATIONS ── */
+@keyframes slideUp{
+  from{opacity:0;transform:translateY(28px);}
+  to{opacity:1;transform:translateY(0);}
+}
+@keyframes fadeIn{
+  from{opacity:0;}
+  to{opacity:1;}
+}
+.reveal{opacity:0;transform:translateY(36px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1);}
+.reveal.visible{opacity:1;transform:none;}
+.reveal-delay-1{transition-delay:.1s;}
+.reveal-delay-2{transition-delay:.2s;}
+.reveal-delay-3{transition-delay:.3s;}
+.reveal-delay-4{transition-delay:.4s;}
+
+/* ── MOBILE ── */
+@media(max-width:900px){
+  nav{padding:20px 24px;}
+  .nav-links{display:none;}
+  .hero{grid-template-columns:1fr;padding:100px 24px 60px;gap:40px;}
+  .hero-right{justify-content:center;}
+  .filmstrip{width:280px;}
+  .about-strip{grid-template-columns:1fr;padding:40px 24px;gap:32px;}
+  .about-right{border-left:none;border-top:1px solid var(--border);padding-left:0;padding-top:28px;}
+  .section{padding:80px 24px;}
+  .skills-layout{grid-template-columns:1fr;}
+  .tools-grid{grid-template-columns:repeat(3,1fr);}
+  .work-grid{grid-template-columns:1fr;}
+  .work-card.featured{grid-column:span 1;}
+  .exp-line{grid-template-columns:1fr;gap:8px;}
+  .exp-line::before{display:none;}
+  .exp-content{padding-left:0;padding-top:12px;}
+  .cert-grid{grid-template-columns:1fr;}
+  .contact-inner{grid-template-columns:1fr;gap:56px;}
+  footer{flex-direction:column;gap:20px;padding:32px 24px;text-align:center;}
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="cur-r"></div>
+
+<!-- ══ NAV ══ -->
+<nav>
+  <a class="nav-logo" href="#">Maulik<span>.</span></a>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#work">Work</a></li>
+    <li><a href="#experience">Experience</a></li>
+    <li><a href="#contact" class="nav-cta">Hire Me</a></li>
+  </ul>
+</nav>
+
+<!-- ══ HERO ══ -->
+<section class="hero" id="top">
+  <div class="hero-vignette"></div>
+  <div class="hero-lines"></div>
+
+  <div class="hero-left">
+    <p class="hero-eyebrow">Video Editor · Pixora Studios</p>
+    <h1 class="hero-name">
+      MAULIK<br>
+      <span class="gold">GROVER</span>
+    </h1>
+    <p class="hero-title">Crafting frames that feel like <em>cinema.</em></p>
+    <p class="hero-desc">
+      Video editor specialising in Premiere Pro & DaVinci Resolve.
+      I turn raw footage into stories — through precision cuts,
+      cinematic colour, and motion that moves people.
+    </p>
+    <div class="hero-actions">
+      <a href="#work" class="btn-primary">View My Work</a>
+      <a href="https://www.behance.net/gallery/249489843" target="_blank" class="btn-outline">Behance Portfolio ↗</a>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="filmstrip">
+      <div class="film-frame">
+        <div class="film-inner">
+          <span class="film-icon">🎬</span>
+          <span class="film-label">Premiere Pro</span>
+          <span class="film-sub">Primary NLE</span>
+        </div>
+        <span class="film-counter">01 / 03</span>
+      </div>
+      <div class="film-frame">
+        <div class="film-inner">
+          <span class="film-icon">🎨</span>
+          <span class="film-label">DaVinci Resolve</span>
+          <span class="film-sub">Color & Grade</span>
+        </div>
+        <span class="film-counter">02 / 03</span>
+      </div>
+      <div class="film-frame">
+        <div class="film-inner">
+          <span class="film-icon">⚡</span>
+          <span class="film-label">Motion Graphics</span>
+          <span class="film-sub">2D · Animation</span>
+        </div>
+        <span class="film-counter">03 / 03</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ABOUT STRIP ══ -->
+<div class="about-strip reveal" id="about">
+  <div class="about-left">
+    <div class="big-num">2+</div>
+    <div class="big-label">Years of Experience</div>
+    <div class="big-num" style="margin-top:28px;">120+</div>
+    <div class="big-label">Projects Edited</div>
+  </div>
+  <div class="about-center">
+    <p>
+      I'm an 18-year-old video editor at <em>Pixora Studios</em>, based in Pithoragarh, Uttarakhand.
+      My work lives at the intersection of technical precision and visual storytelling —
+      every cut is a decision, every grade is an emotion.
+      I work primarily in <em>Adobe Premiere Pro</em> for editing
+      and <em>DaVinci Resolve</em> for colour, delivering reels, brand films,
+      and motion-graphics content that keeps viewers locked in.
+    </p>
+  </div>
+  <div class="about-right">
+    <div class="info-row">
+      <span class="info-label">Location</span>
+      <span class="info-val">Pithoragarh, Uttarakhand</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Current Role</span>
+      <span class="info-val">Video Editor · Pixora Studios</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Availability</span>
+      <span class="info-val" style="color:var(--gold)">Open to Projects ●</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Portfolio</span>
+      <span class="info-val"><a href="https://www.behance.net/gallery/249489843" target="_blank">behance.net ↗</a></span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SKILLS ══ -->
+<section class="section skills-section" id="skills">
+  <div class="sec-tag reveal">Mastery</div>
+  <h2 class="sec-h reveal">Skills &amp; <em>Expertise</em></h2>
+  <div class="skills-layout reveal">
+
+    <div class="skill-block">
+      <div class="skill-head">
+        <span class="skill-name">Adobe Premiere Pro</span>
+        <span class="skill-tag">Primary</span>
+      </div>
+      <p class="skill-desc">My main NLE for narrative editing, multi-cam sequences, audio syncing, and final export. Deep knowledge of Lumetri, Essential Graphics, and Premiere's full ecosystem.</p>
+      <div class="mastery-label">Mastery Level</div>
+      <div class="mastery-bar"><div class="mastery-fill" data-width="92"></div></div>
+      <div class="mastery-pct">92%</div>
+      <div class="skill-tags">
+        <span class="stag">Multi-cam</span>
+        <span class="stag">Lumetri Color</span>
+        <span class="stag">Essential Graphics</span>
+        <span class="stag">Audio Mixing</span>
+        <span class="stag">Export Pipelines</span>
+      </div>
+    </div>
+
+    <div class="skill-block">
+      <div class="skill-head">
+        <span class="skill-name">DaVinci Resolve</span>
+        <span class="skill-tag">Color</span>
+      </div>
+      <p class="skill-desc">Professional colour grading using nodes, scopes, and LUTs. I use Resolve for cinematic grades, skin tone correction, and matching looks across a sequence.</p>
+      <div class="mastery-label">Mastery Level</div>
+      <div class="mastery-bar"><div class="mastery-fill" data-width="82"></div></div>
+      <div class="mastery-pct">82%</div>
+      <div class="skill-tags">
+        <span class="stag">Node Grading</span>
+        <span class="stag">LUT Creation</span>
+        <span class="stag">Scopes</span>
+        <span class="stag">Fusion Basics</span>
+        <span class="stag">Noise Reduction</span>
+      </div>
+    </div>
+
+    <div class="skill-block">
+      <div class="skill-head">
+        <span class="skill-name">Motion Graphics</span>
+        <span class="skill-tag">2D</span>
+      </div>
+      <p class="skill-desc">2D motion graphics for intros, lower thirds, kinetic titles, and logo reveals. Built primarily inside Premiere's MOGRT system and Fusion — GPU-optimised for GTX 1050 Ti workflows.</p>
+      <div class="mastery-label">Mastery Level</div>
+      <div class="mastery-bar"><div class="mastery-fill" data-width="74"></div></div>
+      <div class="mastery-pct">74%</div>
+      <div class="skill-tags">
+        <span class="stag">MOGRT</span>
+        <span class="stag">Kinetic Typography</span>
+        <span class="stag">Logo Animation</span>
+        <span class="stag">Lower Thirds</span>
+      </div>
+    </div>
+
+    <div class="skill-block">
+      <div class="skill-head">
+        <span class="skill-name">Reels & Short-form</span>
+        <span class="skill-tag">Social</span>
+      </div>
+      <p class="skill-desc">Vertical-first editing for Instagram Reels, YouTube Shorts, and TikTok. Fast-paced cuts, sound design, captions, and hook engineering for maximum retention.</p>
+      <div class="mastery-label">Mastery Level</div>
+      <div class="mastery-bar"><div class="mastery-fill" data-width="88"></div></div>
+      <div class="mastery-pct">88%</div>
+      <div class="skill-tags">
+        <span class="stag">Hook Cuts</span>
+        <span class="stag">Captions</span>
+        <span class="stag">Sound Design</span>
+        <span class="stag">Retention Editing</span>
+        <span class="stag">Vertical Format</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ TOOLS ══ -->
+<section class="section tools-section">
+  <div class="sec-tag reveal">Arsenal</div>
+  <h2 class="sec-h reveal">Tools I <em>work with</em></h2>
+  <div class="tools-grid reveal">
+    <div class="tool-card">
+      <span class="tool-icon">🎬</span>
+      <div class="tool-name">Premiere Pro</div>
+      <div class="tool-level">Expert</div>
+    </div>
+    <div class="tool-card">
+      <span class="tool-icon">🎨</span>
+      <div class="tool-name">DaVinci Resolve</div>
+      <div class="tool-level">Advanced</div>
+    </div>
+    <div class="tool-card">
+      <span class="tool-icon">⚡</span>
+      <div class="tool-name">After Effects</div>
+      <div class="tool-level">Intermediate</div>
+    </div>
+    <div class="tool-card">
+      <span class="tool-icon">🖼️</span>
+      <div class="tool-name">Photoshop</div>
+      <div class="tool-level">Intermediate</div>
+    </div>
+    <div class="tool-card">
+      <span class="tool-icon">🔊</span>
+      <div class="tool-name">Audition</div>
+      <div class="tool-level">Intermediate</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ WORK ══ -->
+<section class="section work-section" id="work">
+  <div class="sec-tag reveal">Portfolio</div>
+  <h2 class="sec-h reveal">Selected <em>Work</em></h2>
+  <div class="work-grid reveal">
+
+    <div class="work-card featured">
+      <div class="work-bg" style="background:linear-gradient(135deg,#1a1a10,#0a0a08);">🌿</div>
+      <div class="work-overlay">
+        <div class="work-cat">Brand Film · Color Grade</div>
+        <div class="work-title">Nature Brand Launch Film</div>
+        <div class="work-sub">60-sec product storytelling · Premiere Pro + DaVinci</div>
+      </div>
+      <div class="work-play-btn">▶</div>
+    </div>
+
+    <div class="work-card">
+      <div class="work-bg" style="background:linear-gradient(135deg,#14080a,#0a060c);">🎵</div>
+      <div class="work-overlay">
+        <div class="work-cat">Music Video · Edit</div>
+        <div class="work-title">Artist Promo Cut</div>
+        <div class="work-sub">Rhythm editing · Beat synced</div>
+      </div>
+      <div class="work-play-btn">▶</div>
+    </div>
+
+    <div class="work-card">
+      <div class="work-bg" style="background:linear-gradient(135deg,#0a0e14,#070a0f);">📱</div>
+      <div class="work-overlay">
+        <div class="work-cat">Instagram Reels · Series</div>
+        <div class="work-title">Fitness Brand — 8 Reels</div>
+        <div class="work-sub">Vertical format · Hook engineering</div>
+      </div>
+      <div class="work-play-btn">▶</div>
+    </div>
+
+    <div class="work-card">
+      <div class="work-bg" style="background:linear-gradient(135deg,#10090a,#0c0608);">🍽️</div>
+      <div class="work-overlay">
+        <div class="work-cat">Ad Creative · Short-form</div>
+        <div class="work-title">Restaurant Ad — 15 Sec</div>
+        <div class="work-sub">A/B variant · Motion titles</div>
+      </div>
+      <div class="work-play-btn">▶</div>
+    </div>
+
+    <div class="work-card">
+      <div class="work-bg" style="background:linear-gradient(135deg,#070c0d,#050909);">💻</div>
+      <div class="work-overlay">
+        <div class="work-cat">Product Demo · SaaS</div>
+        <div class="work-title">Tech Product Walkthrough</div>
+        <div class="work-sub">Screen recording · Motion GFX</div>
+      </div>
+      <div class="work-play-btn">▶</div>
+    </div>
+
+  </div>
+  <div style="margin-top:40px;text-align:center;" class="reveal">
+    <a href="https://www.behance.net/gallery/249489843" target="_blank" class="btn-outline">View Full Behance Portfolio ↗</a>
+  </div>
+</section>
+
+<!-- ══ EXPERIENCE ══ -->
+<section class="section exp-section" id="experience">
+  <div class="sec-tag reveal">Timeline</div>
+  <h2 class="sec-h reveal">Experience &amp; <em>Journey</em></h2>
+
+  <div class="exp-line reveal">
+    <div class="exp-year">2024–<br>Now</div>
+    <div class="exp-content">
+      <div class="exp-role">Video Editor</div>
+      <div class="exp-company">Pixora Studios</div>
+      <p class="exp-desc">End-to-end video production for brand clients — from raw footage ingestion to final deliverable. Responsible for editing, colour grading, and motion graphics on social, commercial, and documentary projects. Managing client communication and revision cycles.</p>
+      <div class="exp-tags">
+        <span class="etag">Premiere Pro</span><span class="etag">DaVinci Resolve</span>
+        <span class="etag">Brand Videos</span><span class="etag">Reels</span><span class="etag">Client Handling</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="exp-line reveal">
+    <div class="exp-year">2024</div>
+    <div class="exp-content">
+      <div class="exp-role">Google Student Ambassador</div>
+      <div class="exp-company">Google — Application Submitted</div>
+      <p class="exp-desc">Applied to represent Google's student program, leveraging video editing skills and community engagement experience. Focused on digital marketing and content creation.</p>
+      <div class="exp-tags">
+        <span class="etag">Digital Marketing</span><span class="etag">Content Creation</span><span class="etag">Community</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="exp-line reveal">
+    <div class="exp-year">2023–<br>2024</div>
+    <div class="exp-content">
+      <div class="exp-role">Freelance Video Editor</div>
+      <div class="exp-company">Independent</div>
+      <p class="exp-desc">Delivered editing and colour grading for independent creators, small brands, and event clients. Built proficiency in fast turnarounds, direct client briefs, and iterative revision workflows.</p>
+      <div class="exp-tags">
+        <span class="etag">Freelance</span><span class="etag">Event Coverage</span><span class="etag">Social Content</span>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══ CERTIFICATIONS ══ -->
+<section class="section cert-section">
+  <div class="sec-tag reveal">Credentials</div>
+  <h2 class="sec-h reveal">Certifications &amp; <em>Learning</em></h2>
+  <div class="cert-grid reveal">
+    <div class="cert-card">
+      <span class="cert-icon">🎬</span>
+      <div class="cert-title">Adobe Certified Professional</div>
+      <div class="cert-org">Adobe · Premiere Pro</div>
+      <span class="cert-status pursuing">In Progress</span>
+    </div>
+    <div class="cert-card">
+      <span class="cert-icon">🎨</span>
+      <div class="cert-title">DaVinci Resolve Certified</div>
+      <div class="cert-org">Blackmagic Design</div>
+      <span class="cert-status pursuing">In Progress</span>
+    </div>
+    <div class="cert-card">
+      <span class="cert-icon">📈</span>
+      <div class="cert-title">Google Digital Marketing</div>
+      <div class="cert-org">Google · Fundamentals of Digital Marketing</div>
+      <span class="cert-status pursuing">In Progress</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CONTACT ══ -->
+<section class="contact-section" id="contact">
+  <div class="contact-inner">
+    <div class="contact-left reveal">
+      <h2>Let's<br><em>work together.</em></h2>
+      <p>Whether it's a brand film, reel series, or a long-form project — I'm open to collaborations, freelance gigs, and full-time opportunities.</p>
+      <div class="contact-links">
+        <a href="https://www.behance.net/gallery/249489843" target="_blank" class="contact-link">
+          <span class="contact-link-icon">🖼️</span>
+          behance.net/maulikgrover
+        </a>
+        <a href="https://linkedin.com" target="_blank" class="contact-link">
+          <span class="contact-link-icon">💼</span>
+          linkedin.com/in/maulikgrover
+        </a>
+        <a href="mailto:hello@maulikgrover.in" class="contact-link">
+          <span class="contact-link-icon">✉️</span>
+          hello@maulikgrover.in
+        </a>
+        <a href="#" class="contact-link">
+          <span class="contact-link-icon">📍</span>
+          Pithoragarh, Uttarakhand, India
+        </a>
+      </div>
+    </div>
+    <div class="contact-right reveal reveal-delay-2">
+      <div class="form">
+        <input class="form-f" type="text" placeholder="Your name">
+        <input class="form-f" type="email" placeholder="Email address">
+        <input class="form-f" type="text" placeholder="Project type (reel, brand film, grade…)">
+        <textarea class="form-f" placeholder="Tell me about your project…"></textarea>
+        <button class="form-btn" onclick="this.querySelector('span').textContent='Message sent ✓'">
+          <span>Send Message</span>
+          <span>→</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER ══ -->
+<footer>
+  <div class="footer-logo">Maulik<span>.</span></div>
+  <p>© 2024 Maulik Grover · Video Editor · Pixora Studios</p>
+  <div class="footer-socials">
+    <a href="https://www.behance.net/gallery/249489843" target="_blank">Behance</a>
+    <a href="#">LinkedIn</a>
+    <a href="#">Instagram</a>
+  </div>
+</footer>
+
+<script>
+// Cursor
+const cur = document.getElementById('cur');
+const curR = document.getElementById('cur-r');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+(function anim(){
+  cur.style.transform=`translate(${mx-4}px,${my-4}px)`;
+  rx+=(mx-rx)*.1; ry+=(my-ry)*.1;
+  curR.style.transform=`translate(${rx-18}px,${ry-18}px)`;
+  requestAnimationFrame(anim);
+})();
+document.querySelectorAll('a,button,input,textarea').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{curR.style.transform+=' scale(1.6)';curR.style.opacity='.9';});
+  el.addEventListener('mouseleave',()=>{curR.style.opacity='.5';});
+});
+
+// Scroll reveal
+const obs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
+},{threshold:0.08});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// Mastery bars — animate when visible
+const barObs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.mastery-fill').forEach(bar=>{
+        bar.style.width = bar.dataset.width + '%';
+      });
+    }
+  });
+},{threshold:0.2});
+document.querySelectorAll('.skill-block').forEach(el=>barObs.observe(el));
+</script>
+</body>
+</html>
